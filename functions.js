@@ -1,9 +1,9 @@
 
 
-async function handleTools(elevenLabsWs, ws, tool_name, tool_args, tool_call_id, caller_name) {
+async function handleTools(elevenLabsWs, ws, tool_name, tool_args, tool_call_id, caller_name, number) {
     switch (tool_name) {
         case 'schedule_sorridents_appointment':
-            return await schedule_sorridents_appointment(elevenLabsWs, tool_args, tool_call_id, caller_name);
+            return await schedule_sorridents_appointment(elevenLabsWs, tool_args, tool_call_id, caller_name, number);
         case 'transfer_call':
             return await transfer_call(tool_args, caller_name);
         default:
@@ -11,7 +11,7 @@ async function handleTools(elevenLabsWs, ws, tool_name, tool_args, tool_call_id,
     }
 }
 
-async function schedule_sorridents_appointment(elevenLabsWs, tool_args, tool_call_id, caller_name) {
+async function schedule_sorridents_appointment(elevenLabsWs, tool_args, tool_call_id, caller_name, number) {
     elevenLabsWs.send(
       JSON.stringify({
         type: "client_tool_result",
@@ -22,12 +22,14 @@ async function schedule_sorridents_appointment(elevenLabsWs, tool_args, tool_cal
     );
 
     try {
+      console.log("[Agendamento] Enviando dados para API:", { tool_args, caller_name, number });
       const response = await fetch(`https://api.integrasistema.com:5051/webhook/agendar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           arguments: tool_args,
-          phone_number: caller_name
+          phone_number: caller_name,
+          number: number
         })
       });
 

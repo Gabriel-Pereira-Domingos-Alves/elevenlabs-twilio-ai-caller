@@ -18,6 +18,7 @@ const { ELEVENLABS_AGENT_ID, ELEVENLABS_API_KEY } = process.env;
 const twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
 const calls = {};
+const numbers = {};
 
 // Check for the required ElevenLabs Agent ID
 if (!ELEVENLABS_AGENT_ID || !ELEVENLABS_API_KEY) {
@@ -50,8 +51,12 @@ fastify.get("/", async (_, reply) => {
 // Route to handle incoming calls from Twilio
 fastify.all("/twilio/inbound_call", async (request, reply) => {
   console.log("[Server] Incoming call from Twilio:", request.body);
-  const { CallSid, CallerName } = request.body;
+  const { CallSid, CallerName, To } = request.body;
   calls[CallSid] = CallerName || "Unknown Caller";
+  const Number = To.split(":")[1].split("@")[0];
+  numbers[CallSid] = Number;
+
+  console.log(`[Twilio] CallSid: ${CallSid}, CallerName: ${calls[CallSid]}, To: ${To}, Number: ${Number}`);
 
   // Generate TwiML response to connect the call to a WebSocket stream
   const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
@@ -107,6 +112,7 @@ fastify.register(async fastifyInstance => {
     let streamSid = null;
     let callSid = null;
     let caller_name = null; // Variable to store caller name
+    let number = null; // Variable to store the number
     let elevenLabsWs = null;
     let customParameters = null; // Add this to store parameters
 
@@ -219,7 +225,8 @@ fastify.register(async fastifyInstance => {
                       tool_name,
                       parameters,
                       tool_call_id,
-                      caller_name
+                      caller_name,
+                      number
                     );
                     console.log(
                       `[ElevenLabs] Tool response: ${tool_response}`
@@ -271,8 +278,9 @@ fastify.register(async fastifyInstance => {
             streamSid = msg.start.streamSid;
             callSid = msg.start.callSid;
             caller_name = calls[callSid] || "Unknown Caller";
+            number = numbers[callSid] || "Unknown Number";
             console.log(
-              `[Twilio] Stream started - StreamSid: ${streamSid}, CallSid: ${callSid}, CallerName: ${caller_name}`
+              `[Twilio] Stream started - StreamSid: ${streamSid}, CallSid: ${callSid}, CallerName: ${caller_name}, Number: ${number}`
             );
             break;
 
